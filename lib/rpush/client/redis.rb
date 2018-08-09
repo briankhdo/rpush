@@ -24,6 +24,9 @@ require 'rpush/client/redis/apns/feedback'
 require 'rpush/client/redis/apns2/app'
 require 'rpush/client/redis/apns2/notification'
 
+require 'rpush/client/redis/apnsp8/app'
+require 'rpush/client/redis/apnsp8/notification'
+
 require 'rpush/client/redis/gcm/app'
 require 'rpush/client/redis/gcm/notification'
 
@@ -37,6 +40,9 @@ require 'rpush/client/redis/wns/app'
 require 'rpush/client/redis/wns/notification'
 require 'rpush/client/redis/wns/raw_notification'
 require 'rpush/client/redis/wns/badge_notification'
+
+require 'rpush/client/redis/pushy/app'
+require 'rpush/client/redis/pushy/notification'
 
 Modis.configure do |config|
   config.namespace = :rpush

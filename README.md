@@ -17,10 +17,11 @@ Rpush aims to be the *de facto* gem for sending push notifications in Ruby. Its 
   * [**Firebase Cloud Messaging**](#firebase-cloud-messaging) (used to be Google Cloud Messaging)
   * [**Amazon Device Messaging**](#amazon-device-messaging)
   * [**Windows Phone Push Notification Service**](#windows-phone-notification-service)
+  * [**Pushy**](#pushy)
 
 #### Feature Highlights
 
-* Use [**ActiveRecord**](https://github.com/rpush/rpush/wiki/Using-ActiveRecord) or [**Redis**](https://github.com/rpush/rpush/wiki/Using-Redis) for storage.
+* Use [**ActiveRecord**](https://github.com/rpush/rpush/wiki/Using-ActiveRecord) or [**Redis**](https://github.com/rpush/rpush/wiki/Using-Redis) for storage. **Note:** Redis support for Rails 5.2 is not yet working if you're using Modis, see [this issue](https://github.com/ileitch/modis/issues/13).
 * Plugins for [**Bugsnag**](https://github.com/rpush/rpush-plugin-bugsnag),
 [**Sentry**](https://github.com/rpush/rpush-plugin-sentry), [**StatsD**](https://github.com/rpush/rpush-plugin-statsd) or [write your own](https://github.com/rpush/rpush/wiki/Writing-a-Plugin).
 * Seamless integration with your projects, including **Rails**.
@@ -79,9 +80,33 @@ You should also implement the [ssl_certificate_will_expire](https://github.com/r
 
 To use the newer APNs Api replace `Rpush::Apns::App` with `Rpush::Apns2::App`.
 
+To use the p8 APNs Api replace `Rpush::Apns::App` with `Rpush::Apnsp8::App`.
+
+```ruby
+app = Rpush::Apnsp8::App.new
+app.name = "ios_app"
+app.apn_key = File.read("/path/to/sandbox.p8")
+app.environment = "development" # APNs environment.
+app.apn_key_id = "APN KEY ID"
+app.team_id = "TEAM ID"
+app.bundle_id = "BUNDLE ID"
+app.connections = 1
+app.save!
+```
+
+```ruby
+n = Rpush::Apns::Notification.new
+n.app = Rpush::Apnsp8::App.find_by_name("ios_app")
+n.device_token = "..." # 64-character hex string
+n.alert = "hi mom!"
+n.data = { foo: :bar }
+n.save!
+```
 #### Firebase Cloud Messaging
 
 FCM and GCM are – as of writing – compatible with each other. See also [this comment](https://github.com/rpush/rpush/issues/284#issuecomment-228330206) for further references.
+
+Please refer to the Firebase Console on where to find your `auth_key` (probably called _Server Key_ there). To verify you have the right key, use tools like [Postman](https://www.getpostman.com/), [HTTPie](https://httpie.org/), `curl` or similar before reporting a new issue. See also [this comment](https://github.com/rpush/rpush/issues/346#issuecomment-289218776).
 
 ```ruby
 app = Rpush::Gcm::App.new
@@ -206,6 +231,31 @@ n.badge = 4
 n.save!
 ```
 
+#### Pushy
+
+[Pushy](https://pushy.me/) is a highly-reliable push notification gateway, based on [MQTT](https://pushy.me/support#what-is-mqtt) protocol for cross platform push notification delivery that includes web, Android, and iOS. One of its advantages is it allows for reliable notification delivery to Android devices in China where Google Cloud Messaging and Firebase Cloud Messaging are blocked and to custom hardware devices that use Android OS but are not using Google Play Services.
+
+Note: current implementation of Pushy only supports Android devices and does not include [subscriptions](https://pushy.me/docs/android/subscribe-topics).
+
+```ruby
+app = Rpush::Pushy::App.new
+app.name = "android_app"
+app.api_key = YOUR_API_KEY
+app.connections = 1
+app.save!
+```
+
+```ruby
+n = Rpush::Pushy::Notification.new
+n.app = Rpush::Pushy::App.find_by_name("android_app")
+n.registration_ids = ["..."]
+n.data = { message: "hi mom!"}
+n.time_to_live = 60 # seconds
+n.save!
+```
+
+For more documentation on [Pushy](https://pushy.me/docs).
+
 ### Running Rpush
 
 It is recommended to run Rpush as a separate process in most cases, though embedding and manual modes are provided for low-workload environments.
@@ -253,6 +303,10 @@ Call this during startup of your application, for example, by adding it to the e
 #### Using mina
 
 If you're using [mina](https://github.com/mina-deploy/mina), there is a gem called [mina-rpush](https://github.com/d4rky-pl/mina-rpush) which helps you control rpush.
+
+### Cleanup
+
+Rpush leaves delivered notifications in the database. If you do not clear them out, they will take up more and more space. This isn't great for any database, but is especially problematic if using Redis as the Rpush store. [Here](https://github.com/rpush/rpush/wiki/Using-Redis) is an example solution for cleaning up delivered notifications in Redis.
 
 ### Configuration
 
